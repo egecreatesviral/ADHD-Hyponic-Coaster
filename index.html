@@ -3,230 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ADHD Flow State Simulator 🧠</title>
-    <!-- Tailwind CSS -->
+    <title>ADHD Dynamic Perspective Coaster 🧠</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- Three.js (3D Render Motoru) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@600;700&display=swap" rel="stylesheet">
     <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background-color: #000;
-            font-family: 'Fira Code', monospace;
-        }
-        #canvas-container {
-            width: 100vw;
-            height: 100vh;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-        .hud-overlay {
-            position: relative;
-            z-index: 10;
-            pointer-events: none;
-        }
+        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #000; font-family: 'Fira Code', monospace; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        .hud-overlay { position: relative; z-index: 10; pointer-events: none; }
+        .interactive { pointer-events: auto; }
+        .hud-blur { background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); }
     </style>
 </head>
-<body class="w-screen h-screen flex flex-col justify-between p-6 select-none text-white">
+<body class="w-screen h-screen flex flex-col justify-between p-6 select-none text-white" x-data="coasterUiApp()">
 
-    <!-- 📺 GÖZ ALICI 3D HİPNOZ CANVAS ALANI -->
     <div id="canvas-container"></div>
 
-    <!-- 🎛️ ÜST HUD: VİDEODAKİ SABİT X5 LOGOSU -->
     <div class="hud-overlay flex justify-between items-center w-full max-w-5xl mx-auto">
-        <div class="bg-black/50 backdrop-blur-md border border-white/10 px-4 py-2 rounded-xl text-xs font-bold tracking-wider">
-            // METERS: <span id="distance-counter">0</span>m
+        <div class="flex gap-3">
+            <div class="hud-blur px-4 py-2 rounded-xl text-xs font-bold font-mono">
+                <span class="text-purple-400">// FLOW:</span> <span x-text="labels[lang].status"></span>
+            </div>
+            <div class="hud-blur px-4 py-2 rounded-xl text-xs font-bold font-mono text-emerald-400 border border-emerald-500/20">
+                // SPEED: X<span id="speed-multiplier">1.0</span>
+            </div>
         </div>
-        <div class="text-3xl font-black tracking-tighter text-white animate-pulse" style="text-shadow: 0 0 20px rgba(255,255,255,0.6)">
-            X5
-        </div>
-    </div>
-
-    <!-- 💬 MERKEZİ BAŞLATMA PANELİ -->
-    <div class="hud-overlay my-auto mx-auto w-full max-w-xs text-center px-4">
-        <div id="start-panel" class="pointer-events-auto bg-black/80 backdrop-blur-2xl border border-white/10 p-6 rounded-2xl space-y-4 shadow-2xl">
-            <h1 class="text-xs font-bold tracking-widest text-purple-400">// HYPNOTIC_TUNNEL_OS</h1>
-            <p class="text-[11px] text-slate-400 leading-relaxed">İleri doğru akan hipnotik tünel simülasyonu. Başlat butonuna bastığınız an zihinsel akış tetiklenir.</p>
-            <button onclick="startHypnosis()" class="w-full bg-white text-black font-black py-3 rounded-xl text-xs tracking-wider hover:bg-purple-400 hover:text-white transition-all cursor-pointer">AKISI BAŞLAT</button>
-        </div>
-    </div>
-
-    <!-- 💡 ALT TR / EN ÇEVİRİ ALANI -->
-    <div class="hud-overlay flex justify-center w-full">
-        <div class="pointer-events-auto bg-black/60 backdrop-blur-md border border-white/10 px-4 py-1.5 rounded-full text-[10px] font-bold tracking-widest flex gap-3 cursor-pointer" onclick="toggleLanguage()">
-            <span id="lang-indicator" class="text-purple-400">TR</span>
-            <span class="text-white/20">|</span>
-            <span id="lang-text" class="text-slate-400">SUÇSUZ ODAK / PURE FOCUS</span>
-        </div>
-    </div>
-
-    <!-- 🚀 Gelişmiş Hipnotik Tünel Motoru -->
-    <script>
-        let scene, camera, renderer, tunnelGroup;
-        let playerCore, obstacles = [];
-        let isPlaying = false;
-        let distance = 0;
-        let currentLang = 'tr';
         
-        // ⚡ HIZ AYARI: Ne çok yavaş ne çok hızlı, videodaki gibi insanı kilitleyen o akıcı hız seviyesi!
-        let forwardSpeed = 0.35; 
+        <button @click="toggleLang()" class="interactive hud-blur hover:border-purple-500/40 px-4 py-2 rounded-xl text-[11px] font-bold tracking-widest transition-all cursor-pointer shadow-xl">
+            <span x-text="lang === 'tr' ? '🌐 ENGLISH' : '🌐 TÜRKÇE'"></span>
+        </button>
+    </div>
+
+    <div class="hud-overlay my-auto mx-auto w-full max-w-xs text-center px-4">
+        <div id="start-panel" class="interactive hud-blur p-6 rounded-2xl space-y-4 shadow-2xl">
+            <h1 class="text-xs font-bold tracking-widest text-purple-400 font-mono">// PERSPECTIVE_FLOW_OS</h1>
+            <p class="text-[11px] text-slate-400 leading-relaxed font-medium" x-text="labels[lang].desc"></p>
+            <button onclick="startDynamicCoaster()" class="w-full bg-white text-black font-black py-3 rounded-xl text-xs tracking-wider hover:bg-purple-500 hover:text-white transition-all cursor-pointer" x-text="labels[lang].startBtn"></button>
+        </div>
+    </div>
+
+    <div class="hud-overlay flex justify-center w-full">
+        <div class="hud-blur px-5 py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase font-mono text-slate-400">
+            <span x-text="labels[lang].footer"></span>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, coasterCurve;
+        let tunnelGroup, playerCore;
+        let isPlaying = false;
+        
+        let progress = 0;
+        
+        // 📈 HIZLANMA PARAMETRELERİ
+        let baseSpeed = 0.0004;       // Başlangıçtaki o tatlı, sakin taban hızımız
+        let maxSpeed = 0.0015;        // Sitenin ulaşabileceği maksimum X5 çılgın hız sınırı
+        let speedMultiplier = 1.0;    // Ekranda görünecek çarpan (1.0'dan başlayacak)
+        let currentSpeed = baseSpeed; // Aktif ilerleme hızı
+        
         let mouseX = 0, mouseY = 0;
+        let targetCamOffsetX = 0, targetCamOffsetY = 0;
+        let currentCamOffsetX = 0, currentCamOffsetY = 0;
 
         function init() {
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene();
-            
-            // Yoğun sis ile uzağın tamamen karanlık kalması sağlanır (Derinlik efekti)
-            scene.fog = new THREE.FogExp2(0x000000, 0.04);
+            scene.fog = new THREE.FogExp2(0x000000, 0.035); // Derinlik sisi
 
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 0, 5);
-
+            
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             container.appendChild(renderer.domElement);
 
-            // Tünelin halkalarını ve katmanlarını tutacak ana grup
             tunnelGroup = new THREE.Group();
             scene.add(tunnelGroup);
 
-            // 🏢 GERÇEKÇİ KATMANLI DUVARLARIN İNŞASI (Videodaki iç içe geçen geometrik yapılar)
-            buildHypnoticWalls();
+            // 🎢 3 BOYUTLU HAT KIVRIMLARI
+            const points = [];
+            for (let i = 0; i < 80; i++) {
+                points.push(new THREE.Vector3(
+                    Math.sin(i * 0.3) * 5,   
+                    Math.cos(i * 0.15) * 6,  
+                    -i * 9                   
+                ));
+            }
+            coasterCurve = new THREE.CatmullRomCurve3(points);
 
-            // 🟩 BİZİM MERKEZİ KÜBÜMÜZ
-            const coreGeo = new THREE.BoxGeometry(0.25, 0.25, 0.25);
+            buildCoasterTunnel();
+
+            // 🟩 OYUNCUNUN KÜBÜ
+            const coreGeo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
             const coreMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
             playerCore = new THREE.Mesh(coreGeo, coreMat);
-            playerCore.position.set(0, 0, 1);
             scene.add(playerCore);
 
-            window.addEventListener('mousemove', onMove);
-            window.addEventListener('touchmove', onTouch);
-            
+            window.addEventListener('mousemove', handleInputMove);
+            window.addEventListener('touchmove', handleInputTouch);
+
             loop();
         }
 
-        function buildHypnoticWalls() {
-            const wallCount = 60; // Arka arkaya dizilen katman sayısı
-            const spacing = 3;    // Duvarların birbirine olan mesafesi
+        function buildCoasterTunnel() {
+            const totalWalls = 200;
+            for (let i = 0; i < totalWalls; i++) {
+                const t = i / totalWalls;
+                const pos = coasterCurve.getPointAt(t);
+                const tangent = coasterCurve.getTangentAt(t);
 
-            for (let i = 0; i < wallCount; i++) {
-                // Videodaki o blok hissini vermek için kalın ve köşeli geometriler kullanıyoruz
-                const wallGeo = new THREE.TorusGeometry(4, 0.4, 4, 4); // 4 kenarlı katı geometrik tünel blokları
-                const wallMat = new THREE.MeshBasicMaterial({
-                    color: 0x1e1b4b,
-                    wireframe: false // Çizgisel değil, katı ve gerçekçi duvarlar!
-                });
+                const wallGeo = new THREE.TorusGeometry(3.0, 0.25, 4, 4); 
+                const wallMat = new THREE.MeshBasicMaterial({ color: 0x1e1b4b });
                 const wallMesh = new THREE.Mesh(wallGeo, wallMat);
                 
-                // İleriye doğru derinlemesine diz
-                wallMesh.position.z = -i * spacing;
-                // Sarmal (Spiral) bir hipnoz etkisi için her halkayı hafifçe döndürerek diziyoruz
-                wallMesh.rotation.z = i * 0.15;
-                
+                wallMesh.position.copy(pos);
+                wallMesh.lookAt(pos.clone().add(tangent));
+                wallMesh.rotation.z = i * 0.12; 
+
                 tunnelGroup.add(wallMesh);
             }
         }
 
-        function startHypnosis() {
+        function startDynamicCoaster() {
             document.getElementById('start-panel').classList.add('hidden');
             isPlaying = true;
-            spawnDynamicObstacles();
-        }
-
-        // 🚧 DÖNEN GEOMETRİK ENGELLER (İçinden geçmeye çalışacağımız delikli yapılar)
-        function spawnDynamicObstacles() {
-            if (!isPlaying) return;
-
-            // Videodaki gibi mor, turuncu, kırmızı tonları
-            const colors = [0xa855f7, 0xf97316, 0xef4444, 0x3b82f6];
-
-            for (let i = 1; i <= 15; i++) {
-                const obsGeo = new THREE.TorusGeometry(2.2, 0.3, 4, 5); // Beşgen geçiş bariyerleri
-                const obsMat = new THREE.MeshBasicMaterial({
-                    color: colors[Math.floor(Math.random() * colors.length)],
-                    wireframe: true // Engeller daha belirgin parlasın diye tel kafes yapıda
-                });
-                const obsMesh = new THREE.Mesh(obsGeo, obsMat);
-                
-                obsMesh.position.set(0, 0, -i * 30);
-                obsMesh.rotation.z = Math.random() * Math.PI * 2;
-                
-                scene.add(obsMesh);
-                obstacles.push(obsMesh);
-            }
         }
 
         function loop() {
             requestAnimationFrame(loop);
 
             if (isPlaying) {
-                distance += forwardSpeed;
-                document.getElementById('distance-counter').innerText = Math.round(distance);
+                // 📈 ZAMANLA HIZLANMA ALGORİTMASI: Sitede kalındığı her an hız milimetrik olarak artar.
+                if (currentSpeed < maxSpeed) {
+                    currentSpeed += 0.0000005; // İvmelenme katsayısı
+                    // Ekrana yansıtılacak çarpanı hesapla (Örn: X1.2, X2.5...)
+                    speedMultiplier = (currentSpeed / baseSpeed).toFixed(1);
+                    document.getElementById('speed-multiplier').innerText = speedMultiplier;
+                }
 
-                // 🚀 BİZ İLERLİYORUZ: Tünel grubunu kendimize doğru çekerek ileri gitme hissi yaratıyoruz!
-                tunnelGroup.position.z += forwardSpeed;
+                progress += currentSpeed;
+                if (progress > 0.96) progress = 0; 
 
-                // Tünel renklerinin hipnotik ve pürüzsüz bir hızla kayması (ADHD Sensory Akışı)
+                const currentPos = coasterCurve.getPointAt(progress);
+                const lookAtPos = coasterCurve.getPointAt(Math.min(progress + 0.008, 1));
+                const tangent = coasterCurve.getTangentAt(progress);
+
+                playerCore.position.copy(currentPos).add(tangent.clone().multiplyScalar(2.2));
+                playerCore.position.x += mouseX * 0.7;
+                playerCore.position.y += mouseY * 0.7;
+                playerCore.lookAt(lookAtPos);
+
+                // 🎬 KAMERA PARALAKS MEKANİĞİ
+                targetCamOffsetX = -mouseX * 0.6;
+                targetCamOffsetY = -mouseY * 0.4;
+
+                currentCamOffsetX += (targetCamOffsetX - currentCamOffsetX) * 0.05;
+                currentCamOffsetY += (targetCamOffsetY - currentCamOffsetY) * 0.05;
+
+                camera.position.copy(currentPos);
+                camera.position.x += currentCamOffsetX;
+                camera.position.y += currentCamOffsetY;
+                
+                camera.lookAt(playerCore.position);
+
+                // 🔮 DUVARLARIN DÖNÜŞÜ (Hız çarpanına göre duvarların dönüşü de senkronize hızlanır)
                 const time = Date.now() * 0.001;
                 tunnelGroup.children.forEach((wall, idx) => {
-                    // Duvarlar kendi ekseninde akıcı bir şekilde dönüyor
-                    wall.rotation.z += 0.01;
-                    
-                    // Renklerin tünel boyunca dalgalanarak değişmesi
-                    const hue = (time * 0.05 + idx * 0.02) % 1;
-                    wall.material.color.setHSL(hue, 0.7, 0.3);
-
-                    // Arkamızda kalan tünel parçalarını sonsuz döngü için tekrar en ileriye ışınla
-                    if (wall.position.z + tunnelGroup.position.z > camera.position.z) {
-                        wall.position.z -= 180; // Tünelin en ilerisine gönder
-                    }
+                    wall.rotation.z += 0.008 * speedMultiplier; // Duvar dönüşü hıza bağlandı!
+                    const hue = (time * 0.02 * speedMultiplier + idx * 0.015) % 1;
+                    wall.material.color.setHSL(hue, 0.65, 0.25);
                 });
-
-                // 🕹️ Yumuşak ve Akıcı Oyuncu Hareketi (Küp farenin peşinden pürüzsüzce akar)
-                playerCore.position.x += (mouseX * 1.8 - playerCore.position.x) * 0.1;
-                playerCore.position.y += (mouseY * 1.8 - playerCore.position.y) * 0.1;
-
-                // Kameranın kübü çok hafif ve esnek bir gecikmeyle takip etmesi (Uçuş Hissiyatı)
-                camera.position.x += (playerCore.position.x - camera.position.x) * 0.05;
-                camera.position.y += (playerCore.position.y - camera.position.y) * 0.05;
-
-                // 🛑 ÇARPIŞMA KONTROLÜ
-                for (let i = obstacles.length - 1; i >= 0; i--) {
-                    let obs = obstacles[i];
-                    obs.position.z += forwardSpeed; // Engelleri de bizimle aynı hizada akıtıyoruz
-                    obs.rotation.z += 0.015; // Engellerin dönmesi
-
-                    // Tam geçiş anında çarpışma testi
-                    if (obs.position.z > playerCore.position.z - 0.2 && obs.position.z < playerCore.position.z + 0.2) {
-                        if (Math.abs(playerCore.position.x) > 0.6 || Math.abs(playerCore.position.y) > 0.6) {
-                            // Çarpışma olduğunda sahneyi sıfırla veya durdur (Videoda döngü devam ettiği için burayı yumuşak bıraktık)
-                            obs.material.color.setHex(0xff0000);
-                        }
-                    }
-
-                    // Arkada kalan engelleri tekrar tünelin ilerisine fırlat (Sonsuz Döngü)
-                    if (obs.position.z > camera.position.z) {
-                        obs.position.z = -300;
-                        obs.material.color.setHex(colors[Math.floor(Math.random() * colors.length)]);
-                    }
-                }
             }
 
             renderer.render(scene, camera);
         }
 
-        function onMove(e) {
+        function handleInputMove(e) {
             mouseX = (e.clientX / window.innerWidth) * 2 - 1;
             mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
         }
 
-        function onTouch(e) {
+        function handleInputTouch(e) {
             if (e.touches.length > 0) {
                 const touch = e.touches[0];
                 mouseX = (touch.clientX / window.innerWidth) * 2 - 1;
@@ -234,18 +191,26 @@
             }
         }
 
-        // Anlık Dil Çeviri Mekanizması
-        function toggleLanguage() {
-            currentLang = currentLang === 'tr' ? 'en' : 'tr';
-            const indicator = document.getElementById('lang-indicator');
-            const txt = document.getElementById('lang-text');
-            
-            if (currentLang === 'tr') {
-                indicator.innerText = 'TR';
-                txt.innerText = 'SUÇSUZ ODAK / PURE FOCUS';
-            } else {
-                indicator.innerText = 'EN';
-                txt.innerText = 'ADHD STREAM ACTIVE';
+        function coasterUiApp() {
+            return {
+                lang: 'tr',
+                labels: {
+                    tr: {
+                        status: "ACCELERATING_FLOW",
+                        startBtn: "SİMÜLASYONU BAŞLAT",
+                        desc: "Kutuyu hareket ettirdikçe bakış açısının değiştiği, sayfada bekledikçe ivmelenerek hızlanan hipnotik tünel.",
+                        footer: "[ FARE VEYA PARMAK HAREKETİ İLE BAKIŞ AÇISI DEĞİŞİR ]"
+                    },
+                    en: {
+                        status: "ACCELERATING_FLOW",
+                        startBtn: "LAUNCH SIMULATION",
+                        desc: "Hypnotic tunnel that changes perspective as you move the box and accelerates over time.",
+                        footer: "[ MOUSE OR TOUCH MOVEMENT CHANGES PERSPECTIVE ]"
+                    }
+                },
+                toggleLang() {
+                    this.lang = this.lang === 'tr' ? 'en' : 'tr';
+                }
             }
         }
 
